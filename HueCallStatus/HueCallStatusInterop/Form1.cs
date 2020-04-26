@@ -27,22 +27,22 @@ namespace HueCallStatusInterop
             InitializeComponent();
 
 			// connect to app service and wait until the connection gets closed
-			appServiceExit = new AutoResetEvent(false);
-			InitializeAppServiceConnection();
-			appServiceExit.WaitOne();
+			//appServiceExit = new AutoResetEvent(false);
+			//InitializeAppServiceConnection();
+			//appServiceExit.WaitOne();
 
 			this.Activated += Form1_Activated;
         }
 
 		static async void InitializeAppServiceConnection()
 		{
-			connection = new AppServiceConnection();
-			connection.AppServiceName = "HueCallInteropService";
-			connection.PackageFamilyName = Package.Current.Id.FamilyName;
-			connection.RequestReceived += Connection_RequestReceived;
-			connection.ServiceClosed += Connection_ServiceClosed;
+			//connection = new AppServiceConnection();
+			//connection.AppServiceName = "HueCallInteropService";
+			//connection.PackageFamilyName = Package.Current.Id.FamilyName;
+			//connection.RequestReceived += Connection_RequestReceived;
+			//connection.ServiceClosed += Connection_ServiceClosed;
 
-			AppServiceConnectionStatus status = await connection.OpenAsync();
+			//AppServiceConnectionStatus status = await connection.OpenAsync();
 		}
 
 		private static void Connection_ServiceClosed(AppServiceConnection sender, AppServiceClosedEventArgs args)
@@ -118,32 +118,32 @@ namespace HueCallStatusInterop
 
 		private void Form1_Activated(object sender, EventArgs e)
 		{
-			//var toolBarWindowHandle = GetToolbarWindowHandle();
-			//if (toolBarWindowHandle == IntPtr.Zero) return;
+			var toolBarWindowHandle = GetToolbarWindowHandle();
+			if (toolBarWindowHandle == IntPtr.Zero) return;
 
-			//UInt32 count = User32.SendMessage(toolBarWindowHandle, TB.BUTTONCOUNT, 0, 0);
+			UInt32 count = User32.SendMessage(toolBarWindowHandle, TB.BUTTONCOUNT, 0, 0);
 
-			//var microphoneInUse = false;
+			var microphoneInUse = false;
 
-			//for (int i = 0; i < count; i++)
-			//{
-			//	TBBUTTON tbButton = new TBBUTTON();
-			//	string text = String.Empty;
-			//	IntPtr ipWindowHandle = IntPtr.Zero;
+			for (int i = 0; i < count; i++)
+			{
+				TBBUTTON tbButton = new TBBUTTON();
+				string text = String.Empty;
+				IntPtr ipWindowHandle = IntPtr.Zero;
 
-			//	bool b = GetTBButton(toolBarWindowHandle, i, ref tbButton, ref text, ref ipWindowHandle);
+				bool b = GetTBButton(toolBarWindowHandle, i, ref tbButton, ref text, ref ipWindowHandle);
 
-			//	if (b)
-			//	{
-			//		if (text.Contains("is using your microphone"))
-			//		{
-			//			microphoneInUse = true;
-			//			break;
-			//		}
-			//	}
-			//}
+				if (b)
+				{
+					if (text.Contains("is using your microphone"))
+					{
+						microphoneInUse = true;
+						break;
+					}
+				}
+			}
 
-			//Console.WriteLine(microphoneInUse ? "Microphone is in use!" : "Microphone not in use.");
+			labelStatus.Text = microphoneInUse ? "Microphone is in use!" : "Microphone not in use.";
 		}
 
 		private static IntPtr GetToolbarWindowHandle()
