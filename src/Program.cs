@@ -15,6 +15,7 @@ namespace DotNetEd.CallStatusToIfttt
 			if (args.Length == 0)
 			{
 				Console.WriteLine("Include IFTTT Webhook key in command line. Example usage: CallStatusToIfttt.exe keyfromifttt");
+				return;
 			}
 
 			var key = args[0];
