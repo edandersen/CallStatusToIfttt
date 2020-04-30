@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet publish -p:PublishSingleFile=true --configuration Release --no-restore -r win-x64
+      run: dotnet publish -p:PublishSingleFile=true -p:PublishTrimmed=true --configuration Release --no-restore -r win-x64
     - name: Archive production artifacts
       uses: actions/upload-artifact@v1
       with:
