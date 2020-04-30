@@ -1,125 +1,53 @@
 ﻿using Common;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using Windows.ApplicationModel;
-using Windows.ApplicationModel.AppService;
-using Windows.Foundation.Collections;
 
-namespace HueCallStatusInterop
+namespace DotNetEd.CallStatusToIfttt
 {
-    public partial class Form1 : Form
+    class Program
     {
-		static AppServiceConnection connection = null;
-		static AutoResetEvent appServiceExit;
-
-		public Form1()
+		public static async Task Main(string[] args)
         {
-            InitializeComponent();
+			if (args.Length == 0)
+			{
+				Console.WriteLine("Include IFTTT Webhook key in command line. Example usage: CallStatusToIfttt.exe keyfromifttt");
+			}
 
-			// connect to app service and wait until the connection gets closed
-			//appServiceExit = new AutoResetEvent(false);
-			//InitializeAppServiceConnection();
-			//appServiceExit.WaitOne();
+			var key = args[0];
 
-			this.Activated += Form1_Activated;
+			bool? lastStatus = null;
+
+			while(true)
+			{
+				Console.Clear();
+
+				var micInUse = GetMicrophoneInUseStatus();
+
+				if (micInUse != lastStatus)
+				{
+					lastStatus = micInUse;
+
+					var httpClient = new HttpClient();
+
+					var result = await httpClient.PostAsync("https://maker.ifttt.com/trigger/" + (micInUse ? "microphone-in-use" : "microphone-not-in-use") + "/with/key/" + key, new StringContent(""));
+					
+					if (!result.IsSuccessStatusCode) Console.WriteLine("Could not update IFTTT");
+				}
+
+				Console.WriteLine("Mic in use: " + micInUse);
+
+				await Task.Delay(TimeSpan.FromSeconds(5));
+			}
         }
 
-		static async void InitializeAppServiceConnection()
-		{
-			//connection = new AppServiceConnection();
-			//connection.AppServiceName = "HueCallInteropService";
-			//connection.PackageFamilyName = Package.Current.Id.FamilyName;
-			//connection.RequestReceived += Connection_RequestReceived;
-			//connection.ServiceClosed += Connection_ServiceClosed;
-
-			//AppServiceConnectionStatus status = await connection.OpenAsync();
-		}
-
-		private static void Connection_ServiceClosed(AppServiceConnection sender, AppServiceClosedEventArgs args)
-		{
-			// signal the event so the process can shut down
-			appServiceExit.Set();
-		}
-
-		private async static void Connection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
-		{
-			// Get a deferral because we use an awaitable API below to respond to the message
-			// and we don't want this call to get cancelled while we are waiting.
-			var messageDeferral = args.GetDeferral();
-
-			string value = args.Request.Message["REQUEST"] as string;
-			string result = "";
-			switch (value)
-			{
-				case "GetMicrophoneStatus":
-					try
-					{
-						var toolBarWindowHandle = GetToolbarWindowHandle();
-						if (toolBarWindowHandle == IntPtr.Zero) return;
-
-						UInt32 count = User32.SendMessage(toolBarWindowHandle, TB.BUTTONCOUNT, 0, 0);
-
-						var microphoneInUse = false;
-
-						for (int i = 0; i < count; i++)
-						{
-							TBBUTTON tbButton = new TBBUTTON();
-							string text = String.Empty;
-							IntPtr ipWindowHandle = IntPtr.Zero;
-
-							bool b = GetTBButton(toolBarWindowHandle, i, ref tbButton, ref text, ref ipWindowHandle);
-
-							if (b)
-							{
-								if (text.Contains("is using your microphone"))
-								{
-									microphoneInUse = true;
-									break;
-								}
-							}
-						}
-
-						result = microphoneInUse ? "INUSE" : "NOTINUSE";
-					}
-					catch (Exception exc)
-					{
-						result = exc.Message;
-					}
-					break;
-				default:
-					result = "unknown request";
-					break;
-			}
-
-			ValueSet response = new ValueSet();
-			response.Add("RESPONSE", result);
-
-			try
-			{
-				await args.Request.SendResponseAsync(response);
-			}
-			finally
-			{
-				// Complete the deferral so that the platform knows that we're done responding to the app service call.
-				// Note for error handling: this must be called even if SendResponseAsync() throws an exception.
-				messageDeferral.Complete();
-			}
-		}
-
-		private void Form1_Activated(object sender, EventArgs e)
+		private static bool GetMicrophoneInUseStatus()
 		{
 			var toolBarWindowHandle = GetToolbarWindowHandle();
-			if (toolBarWindowHandle == IntPtr.Zero) return;
+			if (toolBarWindowHandle == IntPtr.Zero) return false;
 
 			UInt32 count = User32.SendMessage(toolBarWindowHandle, TB.BUTTONCOUNT, 0, 0);
 
@@ -143,8 +71,9 @@ namespace HueCallStatusInterop
 				}
 			}
 
-			labelStatus.Text = microphoneInUse ? "Microphone is in use!" : "Microphone not in use.";
+			return microphoneInUse;
 		}
+
 
 		private static IntPtr GetToolbarWindowHandle()
 		{
@@ -171,12 +100,12 @@ namespace HueCallStatusInterop
 				// fail silently, as NotifyIconOverflowWindow did not exist prior to Win7
 
 			}
-			if (hToolbar == IntPtr.Zero)
-				MessageBox.Show(
-					"Couldn't find Taskbar",
-					"Error",
-					MessageBoxButtons.OK,
-					MessageBoxIcon.Error);
+			//if (hToolbar == IntPtr.Zero)
+			//	MessageBox.Show(
+			//		"Couldn't find Taskbar",
+			//		"Error",
+			//		MessageBoxButtons.OK,
+			//		MessageBoxIcon.Error);
 
 			return hToolbar;
 		}
@@ -262,6 +191,5 @@ namespace HueCallStatusInterop
 
 			return true;
 		}
-
 	}
 }
